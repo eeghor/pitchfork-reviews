@@ -50,11 +50,25 @@ while not driver.find_elements_by_class_name("end-infinite"):
             before returning control to your script
             """
             driver.get(BASE_URL + "?page=" + str(pcount))
+
             try:
-                driver.find_element_by_partial_link_text('502 Bad')
-                time.sleep(2)
-            except:
+                WebDriverWait(driver, WAIT_TIME).until(
+                    EC.visibility_of_element_located((By.CLASS_NAME, "review-collection-fragment")))
                 GOT_PAGE = True
+            except:
+
+                pass
+            # try to get title
+            # try:
+            #     page_title = driver.find_element_by_xpath("//title")
+            #     if page_title.text.strip().lower() == "502 bad gateway":
+            #         print("encountered 502..")
+            #         time.sleep(2)
+            #     else:
+            #         # if there's a title but not 502
+            #         GOT_PAGE = True
+            # except:
+            #     GOT_PAGE = True
         except:
             print("problem with getting page...")
             print("retrying...")
@@ -62,8 +76,6 @@ while not driver.find_elements_by_class_name("end-infinite"):
 
 
     print("now on {}".format(driver.current_url))
-
-    WebDriverWait(driver, WAIT_TIME).until(EC.visibility_of_element_located((By.CLASS_NAME, "review-collection-fragment")))
 
     album_links_this_page = driver.find_elements_by_class_name("album-link")
     # print("found {} album links on this page".format(len(album_links_this_page)))
@@ -80,6 +92,8 @@ driver.quit()
 print("collected {} album links".format(len(album_review_links)))
 print("requesting review pages...")
 
+links_done = 0
+
 for rl in album_review_links:
 
     GOT_PAGE = False
@@ -94,12 +108,35 @@ for rl in album_review_links:
 
     this_review = defaultdict()
 
-    this_review["artist"] = unidecode(soup.find(class_='artists').text.strip().lower())
-    this_review["album_title"] = unidecode(soup.find(class_='review-title').text.strip().lower())
-    this_review["review_date"] = unidecode(soup.find(class_='pub-date').text.strip())
-    this_review["pitchfork_score"] = unidecode(soup.find(class_='score-circle').text.strip())
-    this_review["review_abstract"] = unidecode(soup.find(class_='abstract').text.strip().lower())
-    this_review["review_text"] = unidecode(soup.find(class_='contents').text.strip().lower())
+    try:
+        this_review["artist"] = unidecode(soup.find(class_='artists').text.strip().lower())
+    except:
+        this_review["artist"] = None
+    try:
+        this_review["album_title"] = unidecode(soup.find(class_='review-title').text.strip().lower())
+    except:
+        this_review["album_title"] = None
+    try:
+        this_review["review_date"] = unidecode(soup.find(class_='pub-date').text.strip())
+    except:
+        this_review["review_date"] = None
+    try:
+        this_review["pitchfork_score"] = unidecode(soup.find(class_='score-circle').text.strip())
+    except:
+        this_review["pitchfork_score"] = None
+    try:
+        this_review["review_abstract"] = unidecode(soup.find(class_='abstract').text.strip().lower())
+    except:
+        this_review["review_abstract"] = None
+    try:
+        this_review["review_text"] = unidecode(soup.find(class_='contents').text.strip().lower())
+    except:
+        this_review["review_text"] = None
+
+    links_done += 1
+
+    if (links_done % 50 == 0):
+        print("processed reviews: {}/{} ({:.1f}%)".format(links_done, len(album_review_links), 100*links_done/len(album_review_links)))
 
     reviews.append(this_review)
 
